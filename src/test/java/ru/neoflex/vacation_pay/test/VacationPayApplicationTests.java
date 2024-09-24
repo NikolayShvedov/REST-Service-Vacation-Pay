@@ -1,11 +1,14 @@
 package ru.neoflex.vacation_pay.test;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import ru.neoflex.vacation_pay.ResolversCommonConfiguration;
+import ru.neoflex.vacation_pay.model.VacationPayRequest;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -14,11 +17,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class VacationPayApplicationTests extends ResolversCommonConfiguration {
 
     @Test
+    @DisplayName("Test returns Bad Request when the salary is zero or less")
     void calculationOfVacationPayForEmployeeWithInvalidSalaryTest() throws Exception {
+        var request = VacationPayRequest.builder()
+                .averageSalaryPerYear(BigDecimal.ZERO)
+                .vacationDays(TEST_VACATION_DAYS)
+                .build();
+
         mockMvc.perform(MockMvcRequestBuilders
-                        .get(VACATION_PAY_API)
-                        .param("averageSalary", "0")
-                        .param("vacationDays", String.valueOf(TEST_VACATION_DAYS))
+                        .post(VACATION_PAY_API)
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
                         .accept(APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -26,11 +35,17 @@ class VacationPayApplicationTests extends ResolversCommonConfiguration {
     }
 
     @Test
+    @DisplayName("Test returns Bad Request when the number of vacation days is zero or less")
     void calculationOfVacationPayForEmployeeWithInvalidVacationDaysTest() throws Exception {
+        var request = VacationPayRequest.builder()
+                .averageSalaryPerYear(TEST_AVERAGE_SALARY)
+                .vacationDays(0)
+                .build();
+
         mockMvc.perform(MockMvcRequestBuilders
-                        .get(VACATION_PAY_API)
-                        .param("averageSalary", String.valueOf(TEST_AVERAGE_SALARY))
-                        .param("vacationDays", "0")
+                        .post(VACATION_PAY_API)
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
                         .accept(APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -38,12 +53,13 @@ class VacationPayApplicationTests extends ResolversCommonConfiguration {
     }
 
     @Test
+    @DisplayName("Test returns Bad Request for invalid date format in vacation start date")
     void calculationOfVacationPayForEmployeeWithInvalidDateTest() throws Exception {
+
         mockMvc.perform(MockMvcRequestBuilders
-                        .get(VACATION_PAY_API)
-                        .param("averageSalary", String.valueOf(TEST_AVERAGE_SALARY))
-                        .param("vacationDays", String.valueOf(TEST_VACATION_DAYS))
-                        .param("startVacationDate", "invalid-date")
+                        .post(VACATION_PAY_API)
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"averageSalaryPerYear\":30500.00,\"vacationDays\":30,\"startVacationDate\":\"invalid\"}")
                         .accept(APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -51,22 +67,17 @@ class VacationPayApplicationTests extends ResolversCommonConfiguration {
     }
 
     @Test
-    void calculationOfVacationPayForEmployeeWithoutRequiredSalaryTest() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders
-                        .get(VACATION_PAY_API)
-                        .param("vacationDays", String.valueOf(TEST_VACATION_DAYS))
-                        .accept(APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("Required request parameter 'averageSalary' is not present"));
-    }
-
-    @Test
+    @DisplayName("Test calculate vacation pay correctly without vacation start date")
     void calculationOfVacationPayForEmployeeUsingSimpleQueryTest() throws Exception {
+        var request = VacationPayRequest.builder()
+                .averageSalaryPerYear(TEST_AVERAGE_SALARY)
+                .vacationDays(TEST_VACATION_DAYS)
+                .build();
+
         mockMvc.perform(MockMvcRequestBuilders
-                        .get(VACATION_PAY_API)
-                        .param("averageSalary", String.valueOf(TEST_AVERAGE_SALARY))
-                        .param("vacationDays", String.valueOf(TEST_VACATION_DAYS))
+                        .post(VACATION_PAY_API)
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
                         .accept(APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -74,12 +85,18 @@ class VacationPayApplicationTests extends ResolversCommonConfiguration {
     }
 
     @Test
+    @DisplayName("Test calculate vacation pay correctly with vacation start date")
     void calculationOfVacationPayForEmployeeUsingQueryWithDateTest() throws Exception {
+        var request = VacationPayRequest.builder()
+                .averageSalaryPerYear(TEST_AVERAGE_SALARY)
+                .vacationDays(TEST_VACATION_DAYS)
+                .startVacationDate(LocalDate.parse(TEST_START_VACATION_DAY))
+                .build();
+
         mockMvc.perform(MockMvcRequestBuilders
-                        .get(VACATION_PAY_API)
-                        .param("averageSalary", String.valueOf(TEST_AVERAGE_SALARY))
-                        .param("vacationDays", String.valueOf(TEST_VACATION_DAYS))
-                        .param("startVacationDate", TEST_START_VACATION_DAY)
+                        .post(VACATION_PAY_API)
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
                         .accept(APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
