@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.Map;
+
 @Getter
 @Setter
 @Builder(toBuilder = true)
@@ -18,4 +20,6 @@ public class ErrorResponse {
     private Integer statusCode;
 
     private String message;
+
+    private Map<String, Object> errors;
 }

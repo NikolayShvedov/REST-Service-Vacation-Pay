@@ -1,47 +1,49 @@
 package ru.neoflex.vacation_pay.advice;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import ru.neoflex.vacation_pay.model.ErrorResponse;
 
-import java.security.InvalidParameterException;
 import java.time.format.DateTimeParseException;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
+@Slf4j
 @ControllerAdvice
 public class VacationPayControllerAdvice {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        var errorMessage = ex.getBindingResult().getFieldError().getDefaultMessage();
-        return ResponseEntity.badRequest()
-                .body(new ErrorResponse(BAD_REQUEST.value(), errorMessage));
-    }
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(BindException ex) {
+        var errorMessage = "Validation and Binding error";
+        Map<String, Object> errors = new HashMap<>();
 
-    @ExceptionHandler({InvalidParameterException.class})
-    public ResponseEntity<ErrorResponse> handleInvalidParameterException(InvalidParameterException ex) {
-        return ResponseEntity.badRequest()
-                .body(new ErrorResponse(BAD_REQUEST.value(), ex.getMessage()));
-    }
+        ex.getBindingResult().getFieldErrors().forEach(error -> {
+            errors.put(error.getField(), error.getDefaultMessage());
+        });
 
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         if (ex.getCause() instanceof DateTimeParseException || ex.getMessage().contains("java.time.LocalDate")) {
-            return ResponseEntity.badRequest()
-                    .body(new ErrorResponse(BAD_REQUEST.value(), "Invalid date format"));
+            errors.put("startVacationDate", "Invalid date format. Expected format: yyyy-MM-dd");
         }
-        return ResponseEntity.badRequest()
-                .body(new ErrorResponse(BAD_REQUEST.value(), "Malformed JSON request"));
+
+        log.error(errorMessage + ": ", ex);
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .statusCode(BAD_REQUEST.value())
+                .message(errorMessage)
+                .errors(errors)
+                .build();
+
+        return ResponseEntity.badRequest().body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleInternalServerException(Exception ex) {
         return ResponseEntity.internalServerError()
-                .body(new ErrorResponse(INTERNAL_SERVER_ERROR.value(), ex.getMessage()));
+                .body(new ErrorResponse(INTERNAL_SERVER_ERROR.value(), ex.getMessage(), null));
     }
 }

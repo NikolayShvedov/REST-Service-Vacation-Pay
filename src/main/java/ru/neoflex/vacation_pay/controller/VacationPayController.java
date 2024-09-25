@@ -2,8 +2,7 @@ package ru.neoflex.vacation_pay.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.neoflex.vacation_pay.model.CalculateResponse;
 import ru.neoflex.vacation_pay.model.VacationPayRequest;
@@ -20,8 +19,8 @@ public class VacationPayController {
     private final VacationPayService vacationPayService;
     private final VacationDaysService vacationDaysService;
 
-    @PostMapping("/calculacte")
-    public ResponseEntity<CalculateResponse> calculate(@Valid @RequestBody VacationPayRequest request) {
+    @GetMapping("/calculacte")
+    public ResponseEntity<CalculateResponse> calculate(@Valid VacationPayRequest request) {
         var vacationDays = calculateVacationDays(request.getVacationDays(), request.getStartVacationDate());
         var response = vacationPayService.getVacationPayCalculation(request.getAverageSalaryPerYear(), vacationDays);
         return ResponseEntity.ok(response);
