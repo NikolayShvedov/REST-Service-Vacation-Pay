@@ -21,7 +21,7 @@ public class VacationPayControllerAdvice {
     @ExceptionHandler(BindException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(BindException ex) {
         var errorMessage = "Validation and Binding error";
-        Map<String, Object> errors = new HashMap<>();
+        var errors = new HashMap<String, Object>();
 
         ex.getBindingResult().getFieldErrors().forEach(error -> {
             errors.put(error.getField(), error.getDefaultMessage());
@@ -32,7 +32,7 @@ public class VacationPayControllerAdvice {
         }
 
         log.error(errorMessage + ": ", ex);
-        ErrorResponse errorResponse = ErrorResponse.builder()
+        var errorResponse = ErrorResponse.builder()
                 .statusCode(BAD_REQUEST.value())
                 .message(errorMessage)
                 .errors(errors)
